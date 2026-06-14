@@ -1,0 +1,46 @@
+# Local development & testing.
+#
+#   docker compose up --build api            # plain HTTP API on :8000
+#   docker compose --profile lambda up        # Lambda-emulation (RIE) on :9000
+#   docker compose --profile llm up           # also start Ollama for the llm/auto strategy
+#
+services:
+  # Primary local service: the FastAPI app as a normal HTTP server.
+  api:
+    build:
+      context: .
+      target: server
+    image: insurance-extractor:server
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      IE_DEFAULT_STRATEGY: ${IE_DEFAULT_STRATEGY:-rule}
+      IE_LOG_LEVEL: ${IE_LOG_LEVEL:-INFO}
+
+  # Lambda container run through the Runtime Interface Emulator. Closest to prod.
+  # Invoke at http://localhost:9000/2015-03-31/functions/function/invocations
+  lambda:
+    build:
+      context: .
+      target: lambda
+    image: insurance-extractor:lambda
+    ports:
+      - "9000:8080"
+    profiles: ["lambda"]
+
+  # Optional local LLM for the "llm"/"auto" strategy. Point the API at it with
+  # IE_OLLAMA_URL=http://ollama:11434/api/chat and pull a model:
+  #   docker compose exec ollama ollama pull qwen2.5:3b
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    profiles: ["llm"]
+
+volumes:
+  ollama:

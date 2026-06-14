@@ -1,0 +1,15 @@
+# Runtime dependencies for the insurance document extractor.
+# Install:  pip install -r requirements.txt
+# Note: also requires the system Tesseract OCR engine (brew install tesseract).
+
+pillow==12.2.0
+pymupdf==1.27.2.3
+pytesseract==0.3.13
+jsonschema==4.26.0
+pydantic==2.13.4
+pydantic-settings==2.14.1
+dateparser==1.4.0
+fastapi==0.137.0
+uvicorn[standard]==0.49.0
+python-multipart==0.0.32
+requests==2.34.2

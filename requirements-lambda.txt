@@ -1,0 +1,5 @@
+# Extra dependencies needed only when running inside AWS Lambda.
+# The Dockerfile installs:  requirements.txt + this file + awslambdaric
+-r requirements.txt
+
+mangum==0.19.0

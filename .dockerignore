@@ -1,14 +1,17 @@
+.venv/
+.git/
 __pycache__/
 *.pyc
-.build/
-.git/
-.idea/
-venv/
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-COPY app.py ./
-EXPOSE 8080
-CMD ["python", "app.py"]
-
+*.egg-info/
+.pytest_cache/
+.DS_Store
+infra/
+docs/
+examples/sample_certificate.png
+tests/
+*.md
+.env
+.env.*
+!.env.example
+docker-compose.yml
+Makefile

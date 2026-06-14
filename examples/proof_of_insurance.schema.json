@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProofOfInsurance",
+  "type": "object",
+  "properties": {
+    "insured_name":    { "type": "string", "description": "Name of the insured party" },
+    "carrier_name":    { "type": "string", "description": "Insurance company" },
+    "policy_number":   { "type": "string" },
+    "effective_date":  { "type": "string", "format": "date" },
+    "expiration_date": { "type": "string", "format": "date" },
+    "coverage_type":   { "type": "string" },
+    "liability_limit": { "type": "number" },
+    "vin":             { "type": "string", "description": "Vehicle identification number" }
+  },
+  "required": ["insured_name", "policy_number", "effective_date", "expiration_date"]
+}

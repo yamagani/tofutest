@@ -1,8 +1,0 @@
-# Add real dependencies here
-boto3>=1.34.0
-def lambda_handler(event, context):
-    return {
-        "statusCode": 200,
-        "body": "Hello from placeholder Lambda!"
-    }
-
