@@ -15,6 +15,7 @@ dependencies = [
     "uvicorn[standard]",
     "python-multipart",
     "requests",
+    "boto3",
 ]
 
 [project.optional-dependencies]

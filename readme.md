@@ -9,6 +9,12 @@ into a **JSON payload validated against a JSON Schema you supply**.
 - **No cloud.** OCR runs locally (Tesseract); field mapping uses a deterministic
   rule engine by default and an optional **local** LLM (Ollama) as a fallback.
 
+Two ways to call it:
+- **Synchronous** (`POST /extract`) — result in the HTTP response. Best for fast docs.
+- **Asynchronous** (`POST /jobs` → `GET /jobs/{id}`) — returns a `job_id` immediately,
+  processes in the background, stores the result in **DynamoDB + S3**. Best when
+  ingestion may be slow. Runs locally against **LocalStack** (same `docker compose up`).
+
 See [docs/insurance-extraction-plan.md](docs/insurance-extraction-plan.md) for the
 full design.
 
@@ -56,9 +62,18 @@ the demo document the examples reference.
 ```bash
 pytest -q
 ```
-Expected: **`13 passed`**. Covers the pipeline end-to-end (synthetic certificate →
-schema-valid JSON), the API (via `TestClient`), config, and the input guards
-(oversized file, too many pages, bad base64, unsupported type).
+Expected: **`20 passed, 1 skipped`** (the skip is the LocalStack integration test
+— see below). Covers the pipeline end-to-end (synthetic certificate → schema-valid
+JSON), the sync + async APIs (via `TestClient`), the job service, config, and the
+input guards (oversized file, too many pages, bad base64, unsupported type).
+
+The LocalStack test runs once the stack is up:
+
+```bash
+docker compose up -d localstack
+IE_AWS_ENDPOINT_URL=http://localhost:4566 AWS_ACCESS_KEY_ID=test \
+  AWS_SECRET_ACCESS_KEY=test pytest tests/test_localstack.py -v
+```
 
 ### 2. CLI
 
@@ -101,16 +116,46 @@ PY
 ```
 Interactive Swagger UI: **http://localhost:8000/docs** (upload a file in the browser).
 
-### 4. Docker Compose (same image that deploys to Lambda)
+Endpoints: `GET /health` · `POST /extract` + `POST /extract-json` (sync) ·
+`POST /jobs` + `POST /jobs-json` → `GET /jobs/{id}` (async).
+
+### 4. Docker Compose — full stack with async jobs + LocalStack
+
+`docker compose up` starts **the API and LocalStack** (DynamoDB + S3) together,
+so the async flow runs entirely offline.
 
 ```bash
-docker compose up --build api          # API on :8000  (or: make compose-up)
-
-# in another terminal — same curl as above against :8000
+docker compose up --build              # API :8000 + LocalStack :4566 (or: make compose-up)
 curl http://localhost:8000/health
 
+# --- async: submit, get a job_id, poll until SUCCEEDED ---
+python - <<'PY'
+import base64, json, time, urllib.request
+B="http://localhost:8000"
+body={"filename":"cert.png",
+      "content_base64":base64.b64encode(open("examples/sample_certificate.png","rb").read()).decode(),
+      "schema":json.load(open("examples/proof_of_insurance.schema.json")),
+      "options":{"strategy":"rule"}}
+req=urllib.request.Request(B+"/jobs-json",data=json.dumps(body).encode(),
+                           headers={"content-type":"application/json"})
+job_id=json.load(urllib.request.urlopen(req))["job_id"]; print("job_id:", job_id)
+for _ in range(30):
+    j=json.load(urllib.request.urlopen(f"{B}/jobs/{job_id}"))
+    if j["status"] in ("SUCCEEDED","FAILED"): break
+    time.sleep(0.5)
+print("status:", j["status"]); print(json.dumps(j.get("result",{}).get("data"), indent=2))
+PY
+
 docker compose logs api                # structured JSON logs (request id + latency)
-docker compose down                    # stop
+docker compose down -v                 # stop + clear LocalStack volume
+```
+
+The async API also has a multipart variant (`POST /jobs`) and the result is
+persisted — inspect it directly in LocalStack:
+
+```bash
+AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
+  aws --endpoint-url http://localhost:4566 dynamodb scan --table-name insurance_jobs
 ```
 
 ### 5. Local Lambda container (via the Runtime Interface Emulator)
@@ -179,6 +224,11 @@ All settings are env-driven (`IE_*`), read once at startup — see
 | `IE_OLLAMA_MODEL` | `qwen2.5:3b` | local LLM model |
 | `IE_MAX_UPLOAD_MB` | `15` | reject larger uploads (HTTP 413) |
 | `IE_MAX_PAGES` | `10` | reject longer PDFs (HTTP 422) |
+| `IE_STORE_BACKEND` | `memory` | async job store: `memory` or `dynamo` |
+| `IE_AWS_ENDPOINT_URL` | _(unset)_ | LocalStack endpoint; unset = real AWS |
+| `IE_DDB_TABLE` / `IE_S3_BUCKET` | `insurance_jobs` / `insurance-documents` | DynamoDB table / S3 bucket |
+| `IE_WORKER_CONCURRENCY` | `2` | background worker threads |
+| `IE_AUTO_CREATE_RESOURCES` | `true` | create table/bucket on startup (set `false` in prod) |
 | `IE_LOG_LEVEL` / `IE_JSON_LOGS` | `INFO` / `true` | structured logging |
 
 ---
@@ -220,9 +270,11 @@ src/insurance_extractor/
   coerce.py         date/money normalization
   validate.py       JSON Schema validation
   pipeline.py       orchestration (single entry point)
+  storage/          JobStore protocol + memory / dynamo (DynamoDB+S3) backends
+  jobs.py           async JobService (submit -> background worker -> poll)
   api/              FastAPI app factory, routes, schemas, middleware
   cli.py            `extract` command
-infra/              OpenTofu/Terraform (ECR, Lambda, API Gateway, IAM)
+infra/              OpenTofu/Terraform (ECR, Lambda, API Gateway, DynamoDB, S3, IAM)
 ```
 
 Pipeline: `ingest (PyMuPDF/Pillow) → preprocess (OpenCV*) → OCR (Tesseract) →

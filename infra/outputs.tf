@@ -16,3 +16,13 @@ output "ecr_repository_url" {
 output "function_name" {
   value = aws_lambda_function.app.function_name
 }
+
+output "jobs_table_name" {
+  description = "DynamoDB table for async job records (set as IE_DDB_TABLE)"
+  value       = aws_dynamodb_table.jobs.name
+}
+
+output "documents_bucket_name" {
+  description = "S3 bucket for uploaded documents (set as IE_S3_BUCKET)"
+  value       = aws_s3_bucket.documents.bucket
+}

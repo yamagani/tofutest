@@ -1,11 +1,12 @@
 # Local development & testing.
 #
-#   docker compose up --build api            # plain HTTP API on :8000
-#   docker compose --profile lambda up        # Lambda-emulation (RIE) on :9000
-#   docker compose --profile llm up           # also start Ollama for the llm/auto strategy
+#   docker compose up --build              # API (:8000) + LocalStack (DynamoDB+S3)
+#   docker compose --profile lambda up      # Lambda-emulation (RIE) on :9000
+#   docker compose --profile llm up         # also start Ollama for the llm/auto strategy
 #
 services:
   # Primary local service: the FastAPI app as a normal HTTP server.
+  # Wired to LocalStack so the async /jobs flow stores to DynamoDB + S3 locally.
   api:
     build:
       context: .
@@ -19,6 +20,28 @@ services:
     environment:
       IE_DEFAULT_STRATEGY: ${IE_DEFAULT_STRATEGY:-rule}
       IE_LOG_LEVEL: ${IE_LOG_LEVEL:-INFO}
+      IE_STORE_BACKEND: dynamo
+      IE_AWS_ENDPOINT_URL: http://localstack:4566
+      IE_AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    depends_on:
+      localstack:
+        condition: service_healthy
+
+  # Local AWS (DynamoDB + S3) so the whole async flow runs offline.
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: dynamodb,s3
+      DEBUG: ${LOCALSTACK_DEBUG:-0}
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   # Lambda container run through the Runtime Interface Emulator. Closest to prod.
   # Invoke at http://localhost:9000/2015-03-31/functions/function/invocations

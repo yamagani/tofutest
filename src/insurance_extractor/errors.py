@@ -48,3 +48,13 @@ class MapperUnavailableError(ExtractionError):
 
     status_code = 503
     code = "mapper_unavailable"
+
+
+class JobNotFoundError(ExtractionError):
+    status_code = 404
+    code = "job_not_found"
+
+
+class StorageError(ExtractionError):
+    status_code = 502
+    code = "storage_error"

@@ -14,6 +14,7 @@ from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Strategy = Literal["rule", "llm", "auto"]
+StoreBackend = Literal["memory", "dynamo"]
 
 
 class Settings(BaseSettings):
@@ -36,6 +37,18 @@ class Settings(BaseSettings):
     max_upload_mb: int = 15
     max_pages: int = 10
 
+    # --- Async jobs / storage ---
+    store_backend: StoreBackend = "memory"  # "dynamo" for DynamoDB+S3 (LocalStack/AWS)
+    worker_concurrency: int = 2  # background worker threads
+    worker_inline: bool = False  # run jobs synchronously (used in tests)
+
+    # --- AWS / LocalStack (used when store_backend="dynamo") ---
+    aws_region: str = "us-east-1"
+    aws_endpoint_url: str | None = None  # e.g. http://localstack:4566 ; None = real AWS
+    ddb_table: str = "insurance_jobs"
+    s3_bucket: str = "insurance-documents"
+    auto_create_resources: bool = True  # create table/bucket on startup (local convenience)
+
     # --- App / observability ---
     api_title: str = "Insurance Document Extractor"
     log_level: str = "INFO"
@@ -44,6 +57,10 @@ class Settings(BaseSettings):
     @property
     def max_upload_bytes(self) -> int:
         return self.max_upload_mb * 1024 * 1024
+
+    @property
+    def use_localstack(self) -> bool:
+        return bool(self.aws_endpoint_url)
 
 
 @lru_cache
