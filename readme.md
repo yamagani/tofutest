@@ -150,6 +150,15 @@ docker compose logs api                # structured JSON logs (request id + late
 docker compose down -v                 # stop + clear LocalStack volume
 ```
 
+**Convenience scripts** (default to the sample doc; honor `BASE_URL`):
+
+```bash
+scripts/api_demo.sh                       # submit + poll + print result (one shot)
+JOB=$(scripts/api_submit.sh)              # ingest -> prints job_id
+scripts/api_get.sh "$JOB"                 # pull result by id
+# against the deployed/container API:  BASE_URL=https://host scripts/api_demo.sh
+```
+
 The async API also has a multipart variant (`POST /jobs`) and the result is
 persisted — inspect it directly in LocalStack:
 

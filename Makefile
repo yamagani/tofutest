@@ -17,8 +17,11 @@ test: ## Run the test suite
 run: ## Run the API locally with autoreload (uvicorn)
 	uvicorn insurance_extractor.api:app --reload --port 8000
 
-compose-up: ## Build & start the HTTP API via docker-compose (:8000)
-	docker compose up --build api
+compose-up: ## Build & start the full stack (API + LocalStack) via docker-compose
+	docker compose up --build
+
+api-demo: ## Submit the sample doc and poll until done (needs the API running)
+	scripts/api_demo.sh
 
 compose-down: ## Stop docker-compose services
 	docker compose down
