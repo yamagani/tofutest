@@ -1,0 +1,41 @@
+[project]
+name = "insurance-extractor"
+version = "0.1.0"
+description = "Offline extraction of proof-of-insurance documents into schema-validated JSON"
+requires-python = ">=3.10"
+dependencies = [
+    "pillow",
+    "pymupdf",
+    "pytesseract",
+    "jsonschema",
+    "pydantic>=2",
+    "pydantic-settings>=2",
+    "dateparser",
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart",
+    "requests",
+    "boto3",
+]
+
+[project.optional-dependencies]
+opencv = ["opencv-python-headless"]
+lambda = ["mangum>=0.17"]
+dev = ["pytest", "httpx"]
+
+[project.scripts]
+extract = "insurance_extractor.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning:importlib._bootstrap",
+    "ignore:Field name .schema. .*shadows an attribute:UserWarning",
+]

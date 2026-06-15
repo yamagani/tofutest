@@ -1,56 +1,31 @@
-# Terraform
-# Local terraform directories
-.terraform/
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
 
-# Terraform state files
+# Local config / secrets
+.env
+.env.*
+!.env.example
+
+# Generated demo artifacts
+examples/sample_certificate.png
+
+# OpenTofu / Terraform (keep .terraform.lock.hcl for reproducible providers)
+**/.terraform/
 *.tfstate
 *.tfstate.*
-
-# Crash logs
-crash.log
-crash.*.log
-
-# Sensitive variable files (un-encrypted)
-*.tfvars
-*.tfvars.json
-
-# Ignore override files as they are usually temp/local
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
-
-# Plan files
-terraform.tfplan
 *.tfplan
+crash.log
 
-# CLI configuration files (contain credentials)
-.terraformrc
-terraform.rc
-
-# Terragrunt cache
-.terragrunt-cache/
-
-# IDE / Editor configuration
-.idea/
-
-# macOS filesystem artifacts
+# OS / editor
 .DS_Store
-
-# Other common editor folders (uncomment if desired)
-# .vscode/
-# *.swp
-
-# Node / yarn (if any helpers/scripts)
-node_modules/
-
-# Python virtual envs (if using scripts)
-venv/
-.env
-
-# Lock files to KEEP (do NOT ignore):
-# .terraform.lock.hcl
-
-# Build artifacts and deployment package for Lambda
-build/
-deployment.zip
+*.swp
+.idea/
+.vscode/

@@ -1,0 +1,8 @@
+# Development / test dependencies (in addition to requirements.txt).
+# Install:  pip install -r requirements-dev.txt
+-r requirements.txt
+
+pytest==9.1.0
+
+# Optional: better scan cleanup (deskew + adaptive threshold) in preprocess.py.
+opencv-python-headless
